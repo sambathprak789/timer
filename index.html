@@ -232,6 +232,9 @@
   /* ── Number input ── */
   .interval-input-row { display: flex; align-items: center; gap: 10px; }
   .interval-input-row label { font-size: 12px; color: var(--text-secondary); min-width: 52px; }
+  @media screen and (max-width: 400px) {
+    .interval-slider { display: none; }
+  }
   .interval-num {
     width: 72px; padding: 6px 10px;
     border-radius: var(--radius-md);
@@ -378,6 +381,10 @@
     font-size: 11px; cursor: pointer; outline: none; max-width: 90px;
   }
 
+  @media screen and (max-width: 400px) {
+    .alarm-sound-select { max-width: 36px; font-size: 10px; padding: 3px 6px; }
+  }
+
   .alarm-delete-btn {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: var(--radius-md);
@@ -485,7 +492,7 @@
       </div>
       <div class="interval-input-row">
         <label>Interval</label>
-        <input type="range" min="5" max="300" step="5" value="30" id="intervalSlider" oninput="syncFromSlider(this.value)" style="flex:1;">
+        <input class="interval-slider" type="range" min="5" max="300" step="5" value="30" id="intervalSlider" oninput="syncFromSlider(this.value)" style="flex:1;">
         <input class="interval-num" type="number" id="intervalNum" min="5" max="300" value="30" oninput="syncFromNum(this.value)">
         <span class="unit-hint" id="unitHint">sec</span>
       </div>
