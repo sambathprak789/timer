@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timer Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f4f4f2;
+    --bg-tertiary: #eeede9;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6b67;
+    --text-tertiary: #9b9b97;
+    --border-light: rgba(0,0,0,0.10);
+    --border-mid: rgba(0,0,0,0.18);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --green: #1D9E75;
+    --green-dark: #0F6E56;
+    --green-light: #E1F5EE;
+    --purple: #7F77DD;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1e1e1c;
+      --bg-secondary: #2a2a27;
+      --bg-tertiary: #333330;
+      --text-primary: #f0efe9;
+      --text-secondary: #a0a09a;
+      --text-tertiary: #6a6a64;
+      --border-light: rgba(255,255,255,0.08);
+      --border-mid: rgba(255,255,255,0.15);
+      --green-light: #0d3d2d;
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    width: 100%;
+    max-width: 460px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-xl);
+    padding: 2rem 1.5rem 2.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  /* ── Clock ── */
+  .clock-ring {
+    position: relative;
+    width: 260px; height: 260px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ring-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .clock-face {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .time-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 26px; font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 2px; line-height: 1;
+  }
+  .time-display .sep { opacity: 0.3; animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:0.3} 50%{opacity:0.08} }
+  .ampm-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px; color: var(--text-secondary); letter-spacing: 3px;
+  }
+  .date-label { font-size: 12px; color: var(--text-tertiary); letter-spacing: 1px; margin-top: 2px; }
+  .status { display: flex; gap: 16px; margin-top: 8px; align-items: center; }
+  .dot { color: var(--text-tertiary); font-size: 15px; transition: color 0.15s; }
+  .dot.has-alarm { color: #1D9E75; }
+  .dot.firing { color: #1D9E75; animation: alarm-icon-pulse 0.6s ease-in-out infinite alternate; }
+  @keyframes alarm-icon-pulse {
+    from { color: #1D9E75; transform: scale(1); }
+    to   { color: #0F6E56; transform: scale(1.25); }
+  }
+
+  /* ── Audio unlock banner ── */
+  .audio-banner {
+    display: none;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    background: #FEF3C7;
+    border: 1px solid #F59E0B;
+    color: #92400E;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+  }
+  .audio-banner.show { display: flex; }
+
+  /* ── Toggle settings button ── */
+  .toggle-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 18px; border-radius: 99px;
+    border: 1px solid var(--border-mid);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .toggle-btn i { font-size: 15px; transition: transform 0.35s; }
+  .toggle-btn.open i { transform: rotate(45deg); }
+
+  /* ── Settings panel ── */
+  .settings-panel {
+    width: 100%;
+    overflow: hidden;
+    max-height: 0; opacity: 0;
+    transition: max-height 0.42s ease, opacity 0.3s ease;
+    display: flex; flex-direction: column; gap: 1.25rem;
+  }
+  .settings-panel.visible { max-height: 1000px; opacity: 1; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 10px; font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 2.5px; text-transform: uppercase;
+    padding-left: 2px;
+  }
+
+  /* ── Controls row ── */
+  .controls-row { display: flex; gap: 8px; width: 100%; flex-wrap: wrap; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 15px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-mid);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .btn:hover { background: var(--bg-secondary); }
+  .btn:active { transform: scale(0.97); }
+  .btn i { font-size: 15px; }
+
+  /* ── Interval card ── */
+  .interval-card {
+    width: 100%;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .interval-header { display: flex; align-items: center; justify-content: space-between; }
+  .interval-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .badge { width: 8px; height: 8px; border-radius: 50%; background: var(--border-mid); flex-shrink: 0; }
+
+  /* ── Unit toggle ── */
+  .unit-toggle {
+    display: flex;
+    border: 1.5px solid var(--border-mid);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .unit-btn {
+    padding: 5px 15px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    border: none; background: transparent;
+    color: var(--text-secondary); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .unit-btn:hover { background: var(--bg-secondary); }
+
+  /* ── Row flex ── */
+  .row-flex { display: flex; align-items: center; gap: 10px; }
+  .row-flex label { font-size: 12px; color: var(--text-secondary); min-width: 52px; }
+
+  /* ── Range slider ── */
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none; appearance: none;
+    height: 4px; border-radius: 99px;
+    background: var(--border-mid);
+    outline: none; cursor: pointer;
+    accent-color: var(--green);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--green);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--green);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+
+  /* ── Number input ── */
+  .interval-input-row { display: flex; align-items: center; gap: 10px; }
+  .interval-input-row label { font-size: 12px; color: var(--text-secondary); min-width: 52px; }
+  .interval-num {
+    width: 72px; padding: 6px 10px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-mid);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px; font-weight: 500; text-align: center;
+    font-family: 'Orbitron', monospace;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .interval-num:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
+  .unit-hint { font-size: 12px; color: var(--text-tertiary); }
+
+  /* ── Progress bar ── */
+  .progress-bar-wrap {
+    width: 100%; height: 4px;
+    border-radius: 99px;
+    background: var(--border-light);
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 99px;
+    background: var(--green);
+    width: 0%;
+    transition: width 1s linear;
+  }
+  .progress-bar-fill.no-transition {
+    transition: none;
+  }
+  .next-label { font-size: 11px; color: var(--text-tertiary); }
+
+  /* ── Sound grid ── */
+  .sound-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; width: 100%; }
+  .sound-btn {
+    padding: 8px 4px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-light);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500; cursor: pointer; text-align: center;
+    transition: all 0.15s;
+  }
+  .sound-btn:hover { border-color: var(--border-mid); color: var(--text-primary); }
+
+  /* ── Alarms ── */
+  .alarm-add-row { display: flex; gap: 8px; align-items: center; width: 100%; flex-wrap: wrap; }
+  .alarm-time-input {
+    padding: 8px 12px; border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-mid); background: var(--bg-primary);
+    color: var(--text-primary); font-family: 'Orbitron', monospace;
+    font-size: 15px; font-weight: 500; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s; color-scheme: light dark;
+    width: 130px;
+  }
+  .alarm-time-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
+  .alarm-label-input {
+    flex: 1; min-width: 80px; padding: 8px 12px; border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-mid); background: var(--bg-primary);
+    color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .alarm-label-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
+  .alarm-label-input::placeholder { color: var(--text-tertiary); }
+  .alarm-add-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 14px; border-radius: var(--radius-md);
+    border: 1.5px solid var(--green); background: var(--green);
+    color: #fff; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .alarm-add-btn:hover { background: var(--green-dark); border-color: var(--green-dark); }
+  .alarm-add-btn:active { transform: scale(0.97); }
+  .alarm-add-btn.editing { background: #7F77DD; border-color: #7F77DD; }
+  .alarm-add-btn.editing:hover { background: #6860cc; border-color: #6860cc; }
+  .alarm-cancel-btn {
+    display: none; align-items: center; gap: 5px;
+    padding: 8px 14px; border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-mid); background: var(--bg-primary);
+    color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .alarm-cancel-btn.show { display: inline-flex; }
+  .alarm-cancel-btn:hover { background: var(--bg-secondary); }
+  .alarm-edit-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-light); background: transparent;
+    color: var(--text-tertiary); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  }
+  .alarm-edit-btn:hover { background: #EEF2FF; color: #7F77DD; border-color: #c4b5fd; }
+
+  .alarm-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .alarm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-light); background: var(--bg-secondary);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .alarm-item.firing {
+    border-color: var(--green); background: #e8f9f3;
+    animation: alarm-pulse 0.6s ease-in-out infinite alternate;
+  }
+  @media (prefers-color-scheme: dark) { .alarm-item.firing { background: #0d3d2d; } }
+  @keyframes alarm-pulse {
+    from { box-shadow: 0 0 0 0 rgba(29,158,117,0.5); }
+    to   { box-shadow: 0 0 0 8px rgba(29,158,117,0); }
+  }
+  .alarm-item.done { opacity: 0.4; }
+  .alarm-item.editing-row { border-color: #7F77DD; background: #F5F4FF; }
+  @media (prefers-color-scheme: dark) { .alarm-item.editing-row { background: #1e1b3a; } }
+
+  .alarm-toggle {
+    width: 36px; height: 20px; border-radius: 99px;
+    border: none; cursor: pointer; flex-shrink: 0;
+    position: relative; transition: background 0.2s; background: var(--border-mid);
+  }
+  .alarm-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%; background: #fff;
+    transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .alarm-toggle.on { background: var(--green); }
+  .alarm-toggle.on::after { transform: translateX(16px); }
+
+  .alarm-info { flex: 1; min-width: 0; }
+  .alarm-time-display {
+    font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 700;
+    color: var(--text-primary); letter-spacing: 1px;
+  }
+  .alarm-label-display {
+    font-size: 11px; color: var(--text-tertiary); margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .alarm-sound-select {
+    padding: 4px 8px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-mid); background: var(--bg-primary);
+    color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
+    font-size: 11px; cursor: pointer; outline: none; max-width: 90px;
+  }
+
+  .alarm-delete-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-light); background: transparent;
+    color: var(--text-tertiary); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  }
+  .alarm-delete-btn:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+  .alarm-dismiss-btn {
+    display: none; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 99px;
+    border: 1.5px solid var(--green); background: var(--green);
+    color: #fff; font-size: 11px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; flex-shrink: 0;
+  }
+  .alarm-item.firing .alarm-dismiss-btn { display: inline-flex; }
+  .alarm-item.firing .alarm-edit-btn   { display: none; }
+  .alarm-item.firing .alarm-delete-btn { display: none; }
+
+  .alarm-empty { text-align: center; padding: 20px; color: var(--text-tertiary); font-size: 13px; }
+  .alarm-empty i { font-size: 28px; display: block; margin-bottom: 6px; opacity: 0.4; }
+
+  .alarm-toast {
+    display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--green); color: #fff; padding: 12px 20px; border-radius: 99px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 20px rgba(29,158,117,0.4); z-index: 9999; white-space: nowrap;
+    align-items: center; gap: 8px; animation: toast-in 0.3s ease;
+  }
+  .alarm-toast.show { display: flex; }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- shown when AudioContext is suspended on load -->
+  <div class="audio-banner" id="audioBanner" onclick="unlockAudio()">
+    <i class="ti ti-volume"></i>
+    Tap here to enable sound
+  </div>
+
+  <div class="clock-ring">
+    <svg class="ring-svg" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="130" cy="130" r="120" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+      <circle cx="130" cy="130" r="120" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"
+        stroke-dasharray="753.98" stroke-dashoffset="753.98" id="secRing" transform="rotate(-90 130 130)"/>
+      <circle cx="130" cy="130" r="108" stroke="rgba(0,0,0,0.05)" stroke-width="0.5" stroke-dasharray="3 7"/>
+      <circle cx="130" cy="130" r="98" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+      <circle cx="130" cy="130" r="98" stroke="#7F77DD" stroke-width="2.5" stroke-linecap="round"
+        stroke-dasharray="615.75" stroke-dashoffset="615.75" id="minRing" transform="rotate(-90 130 130)"/>
+    </svg>
+    <div class="clock-face">
+      <div class="time-display">
+        <span id="hh">00</span><span class="sep">:</span><span id="mm">00</span><span class="sep">:</span><span id="ss">00</span>
+      </div>
+      <div class="ampm-label" id="ampm">AM</div>
+      <div class="date-label" id="dateLabel">—</div>
+      <div class="status">
+        <div class="dot" id="tickDot" title="Tick sound"><i class="ti ti-volume-off"></i></div>
+        <div class="dot" id="alertDot" title="Alert"><i class="ti ti-bell"></i></div>
+        <div class="dot" id="loopDot" title="Loop"><i class="ti ti-repeat"></i></div>
+        <div class="dot" id="alarmDot" title="Alarms"><i class="ti ti-alarm"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="toggle-btn" id="toggleSettingsBtn" onclick="toggleSettings()">
+    <i class="ti ti-settings"></i>
+    <span id="toggleLabel">Show settings</span>
+  </button>
+
+  <div class="settings-panel" id="settingsPanel">
+
+    <div class="section-label">Controls</div>
+    <div class="controls-row">
+      <button class="btn" id="tickBtn" onclick="toggleTick()">
+        <i class="ti ti-volume-off"></i> Tick: Off
+      </button>
+      <button class="btn" id="alertToggleBtn" onclick="toggleAlert()">
+        <i class="ti ti-bell"></i> Alert: Off
+      </button>
+      <button class="btn" id="loopBtn" onclick="toggleLoop()">
+        <i class="ti ti-repeat"></i> Loop
+      </button>
+    </div>
+
+    <div class="section-label">Alert interval</div>
+    <div class="interval-card">
+      <div class="interval-header">
+        <span class="interval-title">Every <span id="intervalDisplay">30</span><span id="intervalUnit">s</span></span>
+        <span class="badge" id="alertBadge"></span>
+      </div>
+      <div class="row-flex">
+        <label>Unit</label>
+        <div class="unit-toggle">
+          <button class="unit-btn" id="unitSec" onclick="setUnit('sec')">Seconds</button>
+          <button class="unit-btn" id="unitMin" onclick="setUnit('min')">Minutes</button>
+        </div>
+      </div>
+      <div class="interval-input-row">
+        <label>Interval</label>
+        <input type="range" min="5" max="300" step="5" value="30" id="intervalSlider" oninput="syncFromSlider(this.value)" style="flex:1;">
+        <input class="interval-num" type="number" id="intervalNum" min="5" max="300" value="30" oninput="syncFromNum(this.value)">
+        <span class="unit-hint" id="unitHint">sec</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar"></div></div>
+      <div class="next-label" id="nextLabel">Enable alert to start countdown</div>
+    </div>
+
+    <div class="section-label">Alert sound</div>
+    <div class="sound-grid">
+      <button class="sound-btn" onclick="selectSound('chime')" id="snd-chime">🔔 Chime</button>
+      <button class="sound-btn" onclick="selectSound('bell')" id="snd-bell">🛎 Bell</button>
+      <button class="sound-btn" onclick="selectSound('pulse')" id="snd-pulse">📡 Pulse</button>
+      <button class="sound-btn" onclick="selectSound('zen')" id="snd-zen">🎵 Zen</button>
+      <button class="sound-btn" onclick="selectSound('alarm')" id="snd-alarm">⏰ Alarm</button>
+      <button class="sound-btn" onclick="selectSound('ping')" id="snd-ping">✨ Ping</button>
+    </div>
+
+
+    <div class="section-label">Alarms</div>
+
+    <div class="alarm-add-row">
+      <input type="time" class="alarm-time-input" id="alarmTimeInput">
+      <input type="text" class="alarm-label-input" id="alarmLabelInput" placeholder="Label (optional)" maxlength="30">
+      <button class="alarm-cancel-btn" id="alarmCancelBtn" onclick="cancelEdit()">
+        <i class="ti ti-x"></i> Cancel
+      </button>
+      <button class="alarm-add-btn" id="alarmAddBtn" onclick="addAlarm()">
+        <i class="ti ti-plus"></i> Add
+      </button>
+    </div>
+
+    <div class="alarm-list" id="alarmList">
+      <div class="alarm-empty" id="alarmEmpty">
+        <i class="ti ti-alarm"></i>
+        No alarms set
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="alarm-toast" id="alarmToast">
+  <i class="ti ti-alarm"></i>
+  <span id="alarmToastText">Alarm!</span>
+  <button onclick="dismissToast()" style="background:rgba(255,255,255,0.25);border:none;color:#fff;border-radius:99px;padding:2px 10px;cursor:pointer;font-size:12px;font-family:DM Sans,sans-serif;font-weight:500;">Dismiss</button>
+</div>
+
+<script>
+  const GREEN = '#1D9E75';
+
+  // ── LocalStorage helpers (always parse to correct type) ──────────────────
+  function loadBool(key, def) {
+    const v = localStorage.getItem(key);
+    // localStorage always returns strings; "true"=true, "false"=false, null=default
+    if (v === null) return def;
+    return v === 'true';
+  }
+  function loadInt(key, def) {
+    const v = parseInt(localStorage.getItem(key));
+    return isNaN(v) ? def : v;
+  }
+  function loadStr(key, def) {
+    return localStorage.getItem(key) ?? def;
+  }
+  function save(key, value) {
+    localStorage.setItem(key, value);
+  }
+
+  // ── State (loaded from localStorage, properly typed) ─────────────────────
+  let tickOn        = loadBool('tickOn',        false);
+  let alertOn       = loadBool('alertOn',       false);
+  let loopOn        = loadBool('loopOn',        false);
+  let settingsOpen  = loadBool('settingsOpen',  false);
+  let selectedSound = loadStr ('selectedSound', 'chime');
+  let unit          = loadStr ('unit',          'sec');
+  let intervalSec   = loadInt ('intervalSec',   30);
+  let alertElapsed  = 0;
+  let lastSec       = -1;
+  let audioUnlocked = false;
+
+  // ── AudioContext ──────────────────────────────────────────────────────────
+  const actx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Browsers suspend AudioContext until a user gesture — show banner if so
+  function checkAudioState() {
+    if (actx.state === 'suspended' && (tickOn || alertOn)) {
+      document.getElementById('audioBanner').classList.add('show');
+    }
+  }
+
+  function unlockAudio() {
+    actx.resume().then(() => {
+      audioUnlocked = true;
+      document.getElementById('audioBanner').classList.remove('show');
+    });
+  }
+
+  // ── Colour helpers ────────────────────────────────────────────────────────
+  function applyGreen(el) {
+    el.style.backgroundColor = GREEN;
+    el.style.color = '#ffffff';
+    el.style.borderColor = GREEN;
+  }
+  function removeGreen(el) {
+    el.style.backgroundColor = '';
+    el.style.color = '';
+    el.style.borderColor = '';
+  }
+
+  // ── Clock ─────────────────────────────────────────────────────────────────
+  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateClock() {
+    const now = new Date();
+    const s   = now.getSeconds();
+    const m   = now.getMinutes();
+    const h12 = now.getHours() % 12 || 12;
+
+    document.getElementById('hh').textContent = pad(h12);
+    document.getElementById('mm').textContent = pad(m);
+    document.getElementById('ss').textContent = pad(s);
+    document.getElementById('ampm').textContent = now.getHours() < 12 ? 'AM' : 'PM';
+    document.getElementById('dateLabel').textContent =
+      days[now.getDay()].slice(0,3) + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+    document.getElementById('secRing').style.strokeDashoffset = 753.98 * (1 - s / 60);
+    document.getElementById('minRing').style.strokeDashoffset = 615.75 * (1 - (m * 60 + s) / 3600);
+
+    if (s !== lastSec) {
+      lastSec = s;
+      checkAlarms(now);
+
+      if (tickOn && actx.state === 'running') {
+        playTick();
+        const d = document.getElementById('tickDot');
+        d.style.color = GREEN;
+        setTimeout(() => { const dd = document.getElementById('tickDot'); if (dd) dd.style.color = tickOn ? GREEN : ''; }, 120);
+      }
+
+      if (alertOn) {
+        alertElapsed++;
+        updateProgress();
+        if (alertElapsed >= intervalSec) {
+          const bar = document.getElementById('progressBar');
+          const nextLbl = document.getElementById('nextLabel');
+          // Show "Next alert in 0s" and fill to 100%
+          if (nextLbl) nextLbl.textContent = 'Next alert in 0s';
+          if (bar) bar.style.width = '100%';
+          // Prevent re-entry while waiting for the transition
+          alertElapsed = -999999;
+          // After the 1s CSS transition finishes, play sound then reset
+          setTimeout(() => {
+            if (actx.state === 'running') playAlertSound(selectedSound);
+            // Instantly snap bar back to 0% without animating
+            const b = document.getElementById('progressBar');
+            if (b) {
+              b.classList.add('no-transition');
+              b.style.width = '0%';
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => b.classList.remove('no-transition'));
+              });
+            }
+            if (loopOn) {
+              alertElapsed = 0;
+            } else {
+              alertOn = false;
+              save('alertOn', false);
+              updateAlertUI();
+            }
+          }, 1000);
+        }
+      }
+    }
+  }
+
+  // ── Settings panel ────────────────────────────────────────────────────────
+  function toggleSettings() {
+    settingsOpen = !settingsOpen;
+    save('settingsOpen', settingsOpen);
+    renderSettingsUI();
+  }
+
+  function renderSettingsUI() {
+    document.getElementById('settingsPanel').classList.toggle('visible', settingsOpen);
+    document.getElementById('toggleSettingsBtn').classList.toggle('open', settingsOpen);
+    document.getElementById('toggleLabel').textContent = settingsOpen ? 'Hide settings' : 'Show settings';
+  }
+
+  // ── Progress bar ──────────────────────────────────────────────────────────
+  function updateProgress() {
+    // alertElapsed is set to -999999 during the fire/reset window — skip update
+    if (alertElapsed < 0) return;
+    const bar = document.getElementById('progressBar');
+    const lbl = document.getElementById('nextLabel');
+    if (!bar || !lbl) return;
+    const pct = Math.min((alertElapsed / intervalSec) * 100, 100);
+    bar.style.width = pct + '%';
+    const rem = Math.max(intervalSec - alertElapsed, 0);
+    const rMin = Math.floor(rem / 60), rSec = rem % 60;
+    lbl.textContent =
+      'Next alert in ' + (unit === 'sec' ? rem + 's' : (rMin > 0 ? rMin + 'm ' : '') + rSec + 's');
+  }
+
+  // ── Unit toggle ───────────────────────────────────────────────────────────
+  function setUnit(u, skipSave) {
+    unit = u;
+    if (!skipSave) save('unit', u);
+
+    const secBtn = document.getElementById('unitSec');
+    const minBtn = document.getElementById('unitMin');
+    if (u === 'sec') { applyGreen(secBtn); removeGreen(minBtn); }
+    else             { applyGreen(minBtn); removeGreen(secBtn); }
+
+    document.getElementById('unitHint').textContent = u === 'sec' ? 'sec' : 'min';
+
+    const sl = document.getElementById('intervalSlider');
+    const ni = document.getElementById('intervalNum');
+
+    if (u === 'sec') {
+      sl.min = 5; sl.max = 300; sl.step = 5;
+      ni.min = 5; ni.max = 300;
+      // display current intervalSec directly
+      const disp = Math.min(Math.max(intervalSec, 5), 300);
+      sl.value = disp; ni.value = disp;
+      document.getElementById('intervalDisplay').textContent = disp;
+      document.getElementById('intervalUnit').textContent = 's';
+    } else {
+      sl.min = 1; sl.max = 60; sl.step = 1;
+      ni.min = 1; ni.max = 60;
+      // convert stored seconds → minutes for display
+      const disp = Math.min(Math.max(Math.round(intervalSec / 60), 1), 60);
+      sl.value = disp; ni.value = disp;
+      document.getElementById('intervalDisplay').textContent = disp;
+      document.getElementById('intervalUnit').textContent = 'm';
+    }
+
+    alertElapsed = 0;
+    const pb = document.getElementById('progressBar'); if (pb) pb.style.width = '0%';
+  }
+
+  function syncFromSlider(v) {
+    v = parseInt(v);
+    document.getElementById('intervalNum').value = v;
+    applyInterval(v);
+  }
+  function syncFromNum(v) {
+    v = parseInt(v);
+    if (isNaN(v)) return;
+    const sl = document.getElementById('intervalSlider');
+    const c  = Math.min(Math.max(v, parseInt(sl.min)), parseInt(sl.max));
+    sl.value = c;
+    applyInterval(c);
+  }
+  function applyInterval(v) {
+    intervalSec = unit === 'sec' ? v : v * 60;
+    save('intervalSec', intervalSec);
+    alertElapsed = 0;
+    document.getElementById('intervalDisplay').textContent = v;
+    const pb3 = document.getElementById('progressBar'); if (pb3) pb3.style.width = '0%';
+    if (alertOn) {
+      const nl2 = document.getElementById('nextLabel');
+      if (nl2) nl2.textContent = 'Reset — next alert in ' + (unit === 'sec' ? v + 's' : v + 'm 0s');
+    }
+  }
+
+  // ── Tick ──────────────────────────────────────────────────────────────────
+  function toggleTick() {
+    actx.resume();  // attempt unlock on user gesture
+    tickOn = !tickOn;
+    save('tickOn', tickOn);
+    renderTickUI();
+    document.getElementById('audioBanner').classList.remove('show');
+  }
+  function renderTickUI() {
+    const b   = document.getElementById('tickBtn');
+    const dot = document.getElementById('tickDot');
+    if (tickOn) {
+      b.innerHTML = '<i class="ti ti-volume"></i> Tick: On';
+      applyGreen(b);
+      dot.innerHTML = '<i class="ti ti-volume"></i>';
+      dot.style.color = GREEN;
+    } else {
+      b.innerHTML = '<i class="ti ti-volume-off"></i> Tick: Off';
+      removeGreen(b);
+      dot.innerHTML = '<i class="ti ti-volume-off"></i>';
+      dot.style.color = '';
+    }
+  }
+
+  // ── Alert ─────────────────────────────────────────────────────────────────
+  function toggleAlert() {
+    actx.resume();  // attempt unlock on user gesture
+    alertOn = !alertOn;
+    save('alertOn', alertOn);
+    if (alertOn) alertElapsed = 0;
+    updateAlertUI();
+    document.getElementById('audioBanner').classList.remove('show');
+  }
+  function updateAlertUI() {
+    const b     = document.getElementById('alertToggleBtn');
+    const badge = document.getElementById('alertBadge');
+    const dot   = document.getElementById('alertDot');
+    if (alertOn) {
+      b.innerHTML = '<i class="ti ti-bell-ringing"></i> Alert: On';
+      applyGreen(b);
+      applyGreen(badge);
+      dot.style.color = GREEN;
+      const pb1 = document.getElementById('progressBar'); if (pb1) pb1.style.width = '0%';
+    } else {
+      b.innerHTML = '<i class="ti ti-bell"></i> Alert: Off';
+      removeGreen(b);
+      removeGreen(badge);
+      dot.style.color = '';
+      const pb2 = document.getElementById('progressBar'); if (pb2) pb2.style.width = '0%';
+      const nl = document.getElementById('nextLabel'); if (nl) nl.textContent = 'Enable alert to start countdown';
+    }
+  }
+
+  // ── Loop ──────────────────────────────────────────────────────────────────
+  function toggleLoop() {
+    loopOn = !loopOn;
+    save('loopOn', loopOn);
+    renderLoopUI();
+  }
+  function renderLoopUI() {
+    const b   = document.getElementById('loopBtn');
+    const dot = document.getElementById('loopDot');
+    if (loopOn) {
+      b.innerHTML = '<i class="ti ti-repeat"></i> Loop: On';
+      applyGreen(b);
+      dot.style.color = GREEN;
+    } else {
+      b.innerHTML = '<i class="ti ti-repeat"></i> Loop';
+      removeGreen(b);
+      dot.style.color = '';
+    }
+  }
+
+  // ── Sound ─────────────────────────────────────────────────────────────────
+  function selectSound(type, preview) {
+    document.querySelectorAll('.sound-btn').forEach(b => removeGreen(b));
+    applyGreen(document.getElementById('snd-' + type));
+    selectedSound = type;
+    save('selectedSound', type);
+    if (preview) playAlertSound(type);
+  }
+
+  function note(freq, start, dur, vol = 0.25, type = 'sine') {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, actx.currentTime + start);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + start + dur);
+    o.start(actx.currentTime + start);
+    o.stop(actx.currentTime + start + dur + 0.01);
+  }
+  function playTick() { note(1200, 0, 0.04, 0.08); }
+  function playAlertSound(type) {
+    ({
+      chime: () => { note(523.25,0,.6); note(659.25,.15,.6); note(783.99,.3,.8); note(1046.5,.5,1.2); },
+      bell:  () => { note(880,0,1.5,.12,'square'); note(1760,0,1.2,.06); },
+      pulse: () => { for(let i=0;i<5;i++) note(440+i*20,i*.12,.1,.18,'sawtooth'); },
+      zen:   () => { note(329.63,0,1.5,.15); note(415.30,.4,1.2,.1); note(523.25,.9,1.5,.12); },
+      alarm: () => { for(let i=0;i<8;i++) note(i%2===0?880:660,i*.1,.09,.18,'square'); },
+      ping:  () => { note(2093,0,.4,.15); note(2637,.1,.5,.1); note(3136,.25,.6,.08); },
+    }[type] || (_ => {}))();
+  }
+
+
+  // ── Alarms ───────────────────────────────────────────────────────────────
+  // Each alarm: { id, time:'HH:MM', label, sound, enabled, fired }
+  let alarms = [];
+  let toastTimer = null;
+
+  function loadAlarms() {
+    try { alarms = JSON.parse(localStorage.getItem('alarms') || '[]'); }
+    catch { alarms = []; }
+  }
+  function saveAlarms() { localStorage.setItem('alarms', JSON.stringify(alarms)); }
+
+  let editingAlarmId = null;  // null = adding new, number = editing existing
+
+  function addAlarm() {
+    actx.resume();
+    const timeVal  = document.getElementById('alarmTimeInput').value;
+    const labelVal = document.getElementById('alarmLabelInput').value.trim();
+    if (!timeVal) { document.getElementById('alarmTimeInput').focus(); return; }
+
+    if (editingAlarmId !== null) {
+      // Save edits to existing alarm
+      const a = alarms.find(a => a.id === editingAlarmId);
+      if (a) {
+        a.time  = timeVal;
+        a.label = labelVal;
+        a.fired = false; // reset so edited time can fire again
+      }
+      cancelEdit();
+    } else {
+      // Create new alarm
+      alarms.push({
+        id: Date.now(),
+        time: timeVal,
+        label: labelVal || '',
+        sound: 'chime',
+        enabled: true,
+        fired: false,
+      });
+    }
+    alarms.sort((a, b) => a.time.localeCompare(b.time));
+    saveAlarms();
+    renderAlarms();
+    document.getElementById('alarmTimeInput').value  = '';
+    document.getElementById('alarmLabelInput').value = '';
+  }
+
+  function startEdit(id) {
+    const a = alarms.find(a => a.id === id);
+    if (!a) return;
+    editingAlarmId = id;
+    document.getElementById('alarmTimeInput').value  = a.time;
+    document.getElementById('alarmLabelInput').value = a.label;
+    const btn = document.getElementById('alarmAddBtn');
+    btn.innerHTML = '<i class="ti ti-check"></i> Save';
+    btn.classList.add('editing');
+    document.getElementById('alarmCancelBtn').classList.add('show');
+    document.getElementById('alarmTimeInput').focus();
+    // Scroll form into view
+    document.getElementById('alarmTimeInput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function cancelEdit() {
+    editingAlarmId = null;
+    document.getElementById('alarmTimeInput').value  = '';
+    document.getElementById('alarmLabelInput').value = '';
+    const btn = document.getElementById('alarmAddBtn');
+    btn.innerHTML = '<i class="ti ti-plus"></i> Add';
+    btn.classList.remove('editing');
+    document.getElementById('alarmCancelBtn').classList.remove('show');
+  }
+
+  function deleteAlarm(id) {
+    if (editingAlarmId === id) cancelEdit();
+    alarms = alarms.filter(a => a.id !== id);
+    saveAlarms();
+    renderAlarms();
+  }
+
+  function toggleAlarmEnabled(id) {
+    const a = alarms.find(a => a.id === id);
+    if (!a) return;
+    a.enabled = !a.enabled;
+    if (a.enabled) a.fired = false;
+    saveAlarms();
+    renderAlarms();
+  }
+
+  function setAlarmSound(id, sound) {
+    const a = alarms.find(a => a.id === id);
+    if (a) { a.sound = sound; saveAlarms(); }
+  }
+
+  function dismissAlarm(id) {
+    const a = alarms.find(a => a.id === id);
+    if (!a) return;
+    a.fired = true;
+    saveAlarms();
+    firingAlarmIds.delete(id);
+    stopFiringSound();
+    dismissToast();
+    renderAlarms();
+  }
+
+  function dismissToast() {
+    const t = document.getElementById('alarmToast');
+    if (t) t.classList.remove('show');
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  }
+
+  // Repeating sound for 30s
+  let firingInterval = null;
+  let firingSound    = 'chime';
+
+  function startFiringSound(sound) {
+    firingSound = sound;
+    if (actx.state === 'running') playAlertSound(sound);
+    // Repeat every 4s (enough gap between sounds) for up to 30s total
+    let elapsed = 0;
+    firingInterval = setInterval(() => {
+      elapsed += 4;
+      if (elapsed >= 30) { stopFiringSound(); return; }
+      if (actx.state === 'running') playAlertSound(firingSound);
+    }, 4000);
+  }
+
+  function stopFiringSound() {
+    if (firingInterval) { clearInterval(firingInterval); firingInterval = null; }
+  }
+
+  const SOUNDS = ['chime','bell','pulse','zen','alarm','ping'];
+  const SOUND_LABELS = { chime:'🔔 Chime', bell:'🛎 Bell', pulse:'📡 Pulse', zen:'🎵 Zen', alarm:'⏰ Alarm', ping:'✨ Ping' };
+
+  // Track which alarm IDs are currently firing (showing pulse animation)
+  const firingAlarmIds = new Set();
+
+  function renderAlarms() {
+    updateAlarmDot();
+    const list = document.getElementById('alarmList');
+    if (!list) return;
+
+    if (alarms.length === 0) {
+      list.innerHTML = `
+        <div class="alarm-empty">
+          <i class="ti ti-alarm"></i>
+          No alarms set
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = alarms.map(a => {
+      const [hh, mm] = a.time.split(':').map(Number);
+      const h12 = hh % 12 || 12;
+      const ampm = hh < 12 ? 'AM' : 'PM';
+      const timeStr = pad(h12) + ':' + pad(mm) + ' ' + ampm;
+      const soundOpts = SOUNDS.map(s =>
+        `<option value="${s}" ${a.sound === s ? 'selected' : ''}>${SOUND_LABELS[s]}</option>`
+      ).join('');
+      const isFiring  = firingAlarmIds.has(a.id);
+      const isEditing = editingAlarmId === a.id;
+      let classes = 'alarm-item';
+      if (isFiring) classes += ' firing';
+      else if (a.fired) classes += ' done';
+      if (isEditing) classes += ' editing-row';
+      return `
+        <div class="${classes}" data-id="${a.id}">
+          <button class="alarm-toggle ${a.enabled ? 'on' : ''}" onclick="toggleAlarmEnabled(${a.id})" title="${a.enabled ? 'Disable' : 'Enable'}"></button>
+          <div class="alarm-info">
+            <div class="alarm-time-display">${timeStr}</div>
+            ${a.label ? `<div class="alarm-label-display">${a.label}</div>` : ''}
+          </div>
+          <select class="alarm-sound-select" onchange="setAlarmSound(${a.id}, this.value)">${soundOpts}</select>
+          <button class="alarm-dismiss-btn" onclick="dismissAlarm(${a.id})"><i class="ti ti-check"></i> Done</button>
+          <button class="alarm-edit-btn" onclick="startEdit(${a.id})" title="Edit"><i class="ti ti-pencil"></i></button>
+          <button class="alarm-delete-btn" onclick="deleteAlarm(${a.id})" title="Delete"><i class="ti ti-trash"></i></button>
+        </div>`;
+    }).join('');
+  }
+
+  function updateAlarmDot() {
+    const dot = document.getElementById('alarmDot');
+    if (!dot) return;
+    const hasActive  = alarms.some(a => a.enabled && !a.fired);
+    const isFiring   = firingAlarmIds.size > 0;
+    if (isFiring) {
+      dot.className = 'dot firing';
+    } else if (hasActive) {
+      dot.className = 'dot has-alarm';
+    } else {
+      dot.className = 'dot';
+    }
+  }
+
+  function checkAlarms(now) {
+    const nowHH = now.getHours();
+    const nowMM = now.getMinutes();
+    const nowSS = now.getSeconds();
+    // Fire at HH:MM:00 exactly
+    if (nowSS !== 0) return;
+    alarms.forEach(a => {
+      if (!a.enabled || a.fired) return;
+      const [aHH, aMM] = a.time.split(':').map(Number);
+      if (aHH === nowHH && aMM === nowMM) {
+        a.fired = true;
+        saveAlarms();
+        fireAlarm(a);
+      }
+    });
+    // Reset fired flags at midnight so alarms repeat daily
+    if (nowHH === 0 && nowMM === 0) {
+      alarms.forEach(a => { if (a.enabled) a.fired = false; });
+      saveAlarms();
+      renderAlarms();
+    }
+  }
+
+  function fireAlarm(a) {
+    // Track as firing and re-render so the row shows pulse + dismiss button
+    firingAlarmIds.add(a.id);
+    renderAlarms();
+
+    // Play sound repeatedly for 30 seconds
+    startFiringSound(a.sound);
+
+    // Show toast
+    const label = a.label || formatAlarmTime(a.time);
+    const toastText = document.getElementById('alarmToastText');
+    const toast     = document.getElementById('alarmToast');
+    if (toastText) toastText.textContent = '⏰ ' + label;
+    if (toast) toast.classList.add('show');
+
+    // Auto-dismiss after 30s
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      firingAlarmIds.delete(a.id);
+      stopFiringSound();
+      dismissToast();
+      renderAlarms();
+    }, 30000);
+  }
+
+  function formatAlarmTime(time) {
+    const [hh, mm] = time.split(':').map(Number);
+    const h12 = hh % 12 || 12;
+    return pad(h12) + ':' + pad(mm) + (hh < 12 ? ' AM' : ' PM');
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  // Restore all UI from saved state — no preview sound on load
+  loadAlarms();
+  renderAlarms();
+  setUnit(unit, true);           // skipSave=true, restores slider correctly
+  selectSound(selectedSound);    // no preview=true so no sound plays on load
+  renderTickUI();
+  updateAlertUI();
+  renderLoopUI();
+  renderSettingsUI();
+  checkAudioState();             // show banner if audio needs unlocking
+
+  updateClock();
+  setInterval(updateClock, 500);
+</script>
+</body>
+</html>
