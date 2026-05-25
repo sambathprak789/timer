@@ -1014,7 +1014,7 @@
     alarms.sort((a, b) => a.time.localeCompare(b.time));
     saveAlarms();
     renderAlarms();
-    document.getElementById('alarmTimeInput').value  = '';
+    document.getElementById('alarmTimeInput').value  = "07:00";
     document.getElementById('alarmLabelInput').value = '';
   }
 
@@ -1046,7 +1046,7 @@
 
   function cancelEdit() {
     editingAlarmId = null;
-    document.getElementById('alarmTimeInput').value  = '';
+    document.getElementById('alarmTimeInput').value  = "07:00";
     document.getElementById('alarmLabelInput').value = '';
     setRepeatPreset('once');
     const btn = document.getElementById('alarmAddBtn');
