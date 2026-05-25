@@ -388,10 +388,13 @@
     border: 1px solid var(--border-mid); background: var(--bg-primary);
     color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
     font-size: 11px; cursor: pointer; outline: none; max-width: 90px;
+    appearance: none;
+    -webkit-appearance: none; /* Safari and Chrome */
+    -moz-appearance: none;    /* Firefox */
   }
 
   @media screen and (max-width: 400px) {
-    .alarm-sound-select { max-width: 36px; font-size: 10px; padding: 3px 6px; }
+    .alarm-sound-select { max-width: 28px; font-size: 10px; padding: 3px 6px; }
   }
 
   .alarm-delete-btn {
