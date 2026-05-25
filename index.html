@@ -310,6 +310,29 @@
   }
   .alarm-label-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
   .alarm-label-input::placeholder { color: var(--text-tertiary); }
+
+  /* Repeat mode row */
+  .alarm-repeat-row { display: flex; gap: 6px; align-items: center; width: 100%; flex-wrap: wrap; }
+  .repeat-preset-btn {
+    padding: 5px 12px; border-radius: 99px;
+    border: 1.5px solid var(--border-mid); background: transparent;
+    color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .repeat-preset-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .repeat-preset-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
+  .day-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+  .day-pill {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1.5px solid var(--border-mid); background: transparent;
+    color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .day-pill:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .day-pill.active { background: var(--green); color: #fff; border-color: var(--green); }
+
   .alarm-add-btn {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 8px 14px; border-radius: var(--radius-md);
@@ -342,7 +365,6 @@
 
   .alarm-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
   .alarm-item {
-    display: flex; align-items: center; gap: 10px;
     padding: 10px 14px; border-radius: var(--radius-md);
     border: 1.5px solid var(--border-light); background: var(--bg-secondary);
     transition: border-color 0.2s, background 0.2s;
@@ -360,6 +382,9 @@
   .alarm-item.editing-row { border-color: #7F77DD; background: #F5F4FF; }
   @media (prefers-color-scheme: dark) { .alarm-item.editing-row { background: #1e1b3a; } }
 
+  /* Item main row */
+  .alarm-main { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+
   .alarm-toggle {
     width: 36px; height: 20px; border-radius: 99px;
     border: none; cursor: pointer; flex-shrink: 0;
@@ -374,6 +399,7 @@
   .alarm-toggle.on::after { transform: translateX(16px); }
 
   .alarm-info { flex: 1; min-width: 0; }
+  .alarm-top-row { display: flex; align-items: baseline; gap: 8px; }
   .alarm-time-display {
     font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 700;
     color: var(--text-primary); letter-spacing: 1px;
@@ -382,6 +408,9 @@
     font-size: 11px; color: var(--text-tertiary); margin-top: 1px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .alarm-repeat-display { font-size: 10px; color: var(--text-tertiary); margin-top: 3px; letter-spacing: 0.5px; }
+  .alarm-repeat-display.everyday { color: var(--green); font-weight: 500; }
+  .alarm-repeat-display.once { color: var(--text-tertiary); }
 
   .alarm-sound-select {
     padding: 4px 8px; border-radius: var(--radius-md);
@@ -415,6 +444,9 @@
   .alarm-item.firing .alarm-dismiss-btn { display: inline-flex; }
   .alarm-item.firing .alarm-edit-btn   { display: none; }
   .alarm-item.firing .alarm-delete-btn { display: none; }
+
+  /* Day pills on item (read-only display) */
+  .alarm-days-row { display: flex; gap: 3px; padding: 0 12px 8px 56px; flex-wrap: wrap; }
 
   .alarm-empty { text-align: center; padding: 20px; color: var(--text-tertiary); font-size: 13px; }
   .alarm-empty i { font-size: 28px; display: block; margin-bottom: 6px; opacity: 0.4; }
@@ -528,12 +560,29 @@
     <div class="alarm-add-row">
       <input type="time" class="alarm-time-input" id="alarmTimeInput">
       <input type="text" class="alarm-label-input" id="alarmLabelInput" placeholder="Label (optional)" maxlength="30">
-      <button class="alarm-cancel-btn" id="alarmCancelBtn" onclick="cancelEdit()">
-        <i class="ti ti-x"></i> Cancel
-      </button>
-      <button class="alarm-add-btn" id="alarmAddBtn" onclick="addAlarm()">
-        <i class="ti ti-plus"></i> Add
-      </button>
+    </div>
+
+    <!-- Repeat mode -->
+    <div class="alarm-repeat-row" id="repeatRow">
+      <button class="repeat-preset-btn active" data-preset="once"     onclick="setRepeatPreset('once')">Once</button>
+      <button class="repeat-preset-btn"         data-preset="everyday" onclick="setRepeatPreset('everyday')">Every day</button>
+      <button class="repeat-preset-btn"         data-preset="weekdays" onclick="setRepeatPreset('weekdays')">Weekdays</button>
+      <button class="repeat-preset-btn"         data-preset="weekends" onclick="setRepeatPreset('weekends')">Weekends</button>
+      <button class="repeat-preset-btn"         data-preset="custom"   onclick="setRepeatPreset('custom')">Custom</button>
+    </div>
+    <div class="day-pills" id="dayPillsRow" style="display:none;">
+      <button class="day-pill" data-day="0" onclick="toggleDayPill(0)">Su</button>
+      <button class="day-pill" data-day="1" onclick="toggleDayPill(1)">Mo</button>
+      <button class="day-pill" data-day="2" onclick="toggleDayPill(2)">Tu</button>
+      <button class="day-pill" data-day="3" onclick="toggleDayPill(3)">We</button>
+      <button class="day-pill" data-day="4" onclick="toggleDayPill(4)">Th</button>
+      <button class="day-pill" data-day="5" onclick="toggleDayPill(5)">Fr</button>
+      <button class="day-pill" data-day="6" onclick="toggleDayPill(6)">Sa</button>
+    </div>
+
+    <div style="display:flex; gap:8px; width:100%;">
+      <button class="alarm-cancel-btn" id="alarmCancelBtn" onclick="cancelEdit()"><i class="ti ti-x"></i> Cancel</button>
+      <button class="alarm-add-btn" id="alarmAddBtn" onclick="addAlarm()"><i class="ti ti-plus"></i> Add</button>
     </div>
 
     <div class="alarm-list" id="alarmList">
@@ -585,6 +634,10 @@
   let lastSec       = -1;
   let audioUnlocked = false;
 
+  // Repeat form state
+  // days: null = once, [0..6] array = specific days (0=Sun)
+  let formRepeatDays = null; // null = once, [] populated = custom/preset days
+
   // ── AudioContext ──────────────────────────────────────────────────────────
   const actx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -617,6 +670,7 @@
   // ── Clock ─────────────────────────────────────────────────────────────────
   const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DAY_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
   function pad(n) { return String(n).padStart(2, '0'); }
 
   function updateClock() {
@@ -874,6 +928,45 @@
     }[type] || (_ => {}))();
   }
 
+  
+  // ── Repeat form ───────────────────────────────────────────────────────
+  // formRepeatDays: null=once, array of 0-6 = repeat days
+  function setRepeatPreset(preset) {
+    document.querySelectorAll('.repeat-preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === preset));
+    const pillRow = document.getElementById('dayPillsRow');
+    if (preset === 'once')     { formRepeatDays = null; pillRow.style.display = 'none'; }
+    else if (preset === 'everyday') { formRepeatDays = [0,1,2,3,4,5,6]; pillRow.style.display = 'none'; }
+    else if (preset === 'weekdays') { formRepeatDays = [1,2,3,4,5]; pillRow.style.display = 'none'; }
+    else if (preset === 'weekends') { formRepeatDays = [0,6]; pillRow.style.display = 'none'; }
+    else if (preset === 'custom')   {
+      formRepeatDays = formRepeatDays && formRepeatDays.length ? formRepeatDays : [];
+      pillRow.style.display = 'flex';
+      syncDayPills();
+    }
+  }
+
+  function toggleDayPill(day) {
+    if (!formRepeatDays) formRepeatDays = [];
+    const idx = formRepeatDays.indexOf(day);
+    if (idx === -1) formRepeatDays.push(day); else formRepeatDays.splice(idx, 1);
+    syncDayPills();
+  }
+
+  function syncDayPills() {
+    document.querySelectorAll('.day-pill').forEach(btn => {
+      const d = parseInt(btn.dataset.day);
+      btn.classList.toggle('active', formRepeatDays && formRepeatDays.includes(d));
+    });
+  }
+
+  function repeatLabel(repeatDays) {
+    if (!repeatDays) return 'Once';
+    const d = repeatDays.slice().sort((a,b)=>a-b);
+    if (d.length === 7) return 'Every day';
+    if (JSON.stringify(d) === JSON.stringify([1,2,3,4,5])) return 'Weekdays';
+    if (JSON.stringify(d) === JSON.stringify([0,6])) return 'Weekends';
+    return d.map(i => DAY_SHORT[i]).join(' · ');
+  }
 
   // ── Alarms ───────────────────────────────────────────────────────────────
   // Each alarm: { id, time:'HH:MM', label, sound, enabled, fired }
@@ -894,12 +987,15 @@
     const labelVal = document.getElementById('alarmLabelInput').value.trim();
     if (!timeVal) { document.getElementById('alarmTimeInput').focus(); return; }
 
+    const repeatDays = formRepeatDays ? [...formRepeatDays].sort((a,b)=>a-b) : null;
+    
     if (editingAlarmId !== null) {
       // Save edits to existing alarm
       const a = alarms.find(a => a.id === editingAlarmId);
       if (a) {
         a.time  = timeVal;
         a.label = labelVal;
+        a.repeatDays = repeatDays;
         a.fired = false; // reset so edited time can fire again
       }
       cancelEdit();
@@ -912,6 +1008,7 @@
         sound: 'chime',
         enabled: true,
         fired: false,
+        repeatDays: repeatDays,
       });
     }
     alarms.sort((a, b) => a.time.localeCompare(b.time));
@@ -927,6 +1024,17 @@
     editingAlarmId = id;
     document.getElementById('alarmTimeInput').value  = a.time;
     document.getElementById('alarmLabelInput').value = a.label;
+    // Restore repeat UI
+    formRepeatDays = a.repeatDays ? [...a.repeatDays] : null;
+    if (!formRepeatDays) {
+      setRepeatPreset('once');
+    } else {
+      const d = formRepeatDays.slice().sort((a,b)=>a-b);
+      if (d.length===7) setRepeatPreset('everyday');
+      else if (JSON.stringify(d)===JSON.stringify([1,2,3,4,5])) setRepeatPreset('weekdays');
+      else if (JSON.stringify(d)===JSON.stringify([0,6])) setRepeatPreset('weekends');
+      else { setRepeatPreset('custom'); syncDayPills(); }
+    }
     const btn = document.getElementById('alarmAddBtn');
     btn.innerHTML = '<i class="ti ti-check"></i> Save';
     btn.classList.add('editing');
@@ -940,6 +1048,7 @@
     editingAlarmId = null;
     document.getElementById('alarmTimeInput').value  = '';
     document.getElementById('alarmLabelInput').value = '';
+    setRepeatPreset('once');
     const btn = document.getElementById('alarmAddBtn');
     btn.innerHTML = '<i class="ti ti-plus"></i> Add';
     btn.classList.remove('editing');
@@ -1035,17 +1144,26 @@
       if (isFiring) classes += ' firing';
       else if (a.fired) classes += ' done';
       if (isEditing) classes += ' editing-row';
+      const rLabel = repeatLabel(a.repeatDays);
+      const rClass = !a.repeatDays ? 'once' : a.repeatDays.length===7 ? 'everyday' : '';
       return `
         <div class="${classes}" data-id="${a.id}">
-          <button class="alarm-toggle ${a.enabled ? 'on' : ''}" onclick="toggleAlarmEnabled(${a.id})" title="${a.enabled ? 'Disable' : 'Enable'}"></button>
-          <div class="alarm-info">
-            <div class="alarm-time-display">${timeStr}</div>
-            ${a.label ? `<div class="alarm-label-display">${a.label}</div>` : ''}
+          <div class="alarm-main">
+            <button class="alarm-toggle ${a.enabled ? 'on' : ''}" onclick="toggleAlarmEnabled(${a.id})" title="${a.enabled ? 'Disable' : 'Enable'}"></button>
+            <div class="alarm-info">
+              <div class="alarm-top-row">
+                <div class="alarm-time-display">${timeStr}</div>
+                ${a.label ? `<div class="alarm-label-display">${a.label}</div>` : ''}
+              </div>
+              <div class="alarm-repeat-display ${rClass}">${rLabel}</div>
+            </div>
+            <div class="alarm-actions">
+              <select class="alarm-sound-select" onchange="setAlarmSound(${a.id}, this.value)">${soundOpts}</select>
+              <button class="alarm-dismiss-btn" onclick="dismissAlarm(${a.id})"><i class="ti ti-check"></i> Done</button>
+              <button class="alarm-edit-btn" onclick="startEdit(${a.id})" title="Edit"><i class="ti ti-pencil"></i></button>
+              <button class="alarm-delete-btn" onclick="deleteAlarm(${a.id})" title="Delete"><i class="ti ti-trash"></i></button>
+            </div>
           </div>
-          <select class="alarm-sound-select" onchange="setAlarmSound(${a.id}, this.value)">${soundOpts}</select>
-          <button class="alarm-dismiss-btn" onclick="dismissAlarm(${a.id})"><i class="ti ti-check"></i> Done</button>
-          <button class="alarm-edit-btn" onclick="startEdit(${a.id})" title="Edit"><i class="ti ti-pencil"></i></button>
-          <button class="alarm-delete-btn" onclick="deleteAlarm(${a.id})" title="Delete"><i class="ti ti-trash"></i></button>
         </div>`;
     }).join('');
   }
@@ -1070,16 +1188,19 @@
     const nowHH = now.getHours();
     const nowMM = now.getMinutes();
     const nowSS = now.getSeconds();
+    const nowDay = now.getDay();
     // Fire at HH:MM:00 exactly
     if (nowSS !== 0) return;
     alarms.forEach(a => {
       if (!a.enabled || a.fired) return;
       const [aHH, aMM] = a.time.split(':').map(Number);
-      if (aHH === nowHH && aMM === nowMM) {
-        a.fired = true;
-        saveAlarms();
-        fireAlarm(a);
-      }
+      if (aHH !== nowHH || aMM !== nowMM) return;
+      if (a.repeatDays && !a.repeatDays.includes(nowDay)) return;
+      a.fired = true;
+      saveAlarms();
+      fireAlarm(a);
+      // midnight reset: only for repeating alarms
+    if (a.enabled && a.repeatDays !== null) a.fired = false; // ← once alarms never reset
     });
     // Reset fired flags at midnight so alarms repeat daily
     if (nowHH === 0 && nowMM === 0) {
