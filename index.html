@@ -1060,7 +1060,7 @@
     } else if (hasActive) {
       dot.className = 'dot has-alarm';
       const time = alarms.filter(a => a.enabled && !a.fired).sort((a,b) => a.time.localeCompare(b.time))[0].time;
-      dot.title = formatAlarmTime(time) + ' alarm(s) active';
+      dot.title = formatAlarmTime(time);
     } else {
       dot.className = 'dot';
     }
