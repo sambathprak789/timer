@@ -82,6 +82,15 @@
     font-size: 26px; font-weight: 700;
     color: var(--text-primary);
     letter-spacing: 2px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; justify-content: center;
+    gap: 2px;
+  }
+  .time-display .digits {
+    display: inline-block;
+    width: 2ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
   }
   .time-display .sep { opacity: 0.3; animation: blink 1s step-end infinite; }
   @keyframes blink { 0%,100%{opacity:0.3} 50%{opacity:0.08} }
@@ -444,7 +453,7 @@
     </svg>
     <div class="clock-face">
       <div class="time-display">
-        <span id="hh">00</span><span class="sep">:</span><span id="mm">00</span><span class="sep">:</span><span id="ss">00</span>
+        <span id="hh" class="digits">00</span><span class="sep">:</span><span id="mm" class="digits">00</span><span class="sep">:</span><span id="ss" class="digits">00</span>
       </div>
       <div class="ampm-label" id="ampm">AM</div>
       <div class="date-label" id="dateLabel">—</div>
