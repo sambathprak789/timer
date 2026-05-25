@@ -1025,10 +1025,7 @@
     }
 
     list.innerHTML = alarms.map(a => {
-      const [hh, mm] = a.time.split(':').map(Number);
-      const h12 = hh % 12 || 12;
-      const ampm = hh < 12 ? 'AM' : 'PM';
-      const timeStr = pad(h12) + ':' + pad(mm) + ' ' + ampm;
+      const timeStr = formatAlarmTime(a.time);
       const soundOpts = SOUNDS.map(s =>
         `<option value="${s}" ${a.sound === s ? 'selected' : ''}>${SOUND_LABELS[s]}</option>`
       ).join('');
@@ -1062,6 +1059,8 @@
       dot.className = 'dot firing';
     } else if (hasActive) {
       dot.className = 'dot has-alarm';
+      const time = alarms.filter(a => a.enabled && !a.fired).sort((a,b) => a.time.localeCompare(b.time))[0].time;
+      dot.title = formatAlarmTime(time) + ' alarm(s) active';
     } else {
       dot.className = 'dot';
     }
